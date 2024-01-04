@@ -3,13 +3,22 @@ project(katengine)
 
 message("EE ${CMAKE_CURRENT_SOURCE_DIR}")
 
-find_package(glfw3 CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
-add_library(katengine src/kat/engine.hpp src/kat/engine.cpp)
+add_library(katengine src/kat/engine.hpp src/kat/engine.cpp
+        src/kat/window.cpp
+        src/kat/window.hpp
+        src/kat/signals/signals.cpp
+        src/kat/signals/signals.hpp
+        src/kat/renderer/renderer.cpp
+        src/kat/renderer/renderer.hpp
+        src/kat/color.cpp
+        src/kat/color.hpp)
 target_include_directories(katengine PUBLIC src/ ${Stb_INCLUDE_DIR})
-target_link_libraries(katengine PUBLIC glad::glad glfw glm::glm spdlog::spdlog)
+target_link_libraries(katengine PUBLIC glad::glad glm::glm spdlog::spdlog)
+
+target_compile_features(katengine PUBLIC cxx_std_23)
 
 add_library(katengine::katengine ALIAS katengine)
