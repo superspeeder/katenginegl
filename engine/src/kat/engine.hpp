@@ -16,6 +16,8 @@
 #include <stdexcept>
 
 namespace kat {
+    class InputManager;
+
 
     constexpr wchar_t WINDOW_CLASS_NAME[] = L"KATWINDOWCLASS";
 
@@ -86,14 +88,17 @@ namespace kat {
 
         void mainloop();
 
+        [[nodiscard]] slot<void()> get_window_redraw_request_slot() const;
+
       private:
         Engine();
 
-        HINSTANCE                 m_hinstance;
-        bool                      m_is_vsync = true;
-        Viewport                  m_current_viewport;
-        std::shared_ptr<Window>   m_primary_window;
-        std::shared_ptr<Renderer> m_active_renderer;
+        HINSTANCE                     m_hinstance;
+        bool                          m_is_vsync = true;
+        Viewport                      m_current_viewport;
+        std::shared_ptr<Window>       m_primary_window;
+        std::shared_ptr<Renderer>     m_active_renderer;
+        std::shared_ptr<InputManager> m_input_manager;
 
         slot<void()>                 m_window_update_slot;
         slot<void()>                 m_window_redraw_request_slot;

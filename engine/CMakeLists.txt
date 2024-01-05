@@ -15,9 +15,11 @@ add_library(katengine src/kat/engine.hpp src/kat/engine.cpp
         src/kat/renderer/renderer.cpp
         src/kat/renderer/renderer.hpp
         src/kat/color.cpp
-        src/kat/color.hpp)
+        src/kat/color.hpp
+        src/input_manager.cpp
+        src/input_manager.hpp)
 target_include_directories(katengine PUBLIC src/ ${Stb_INCLUDE_DIR})
-target_link_libraries(katengine PUBLIC glad::glad glm::glm spdlog::spdlog)
+target_link_libraries(katengine PUBLIC glad::glad glm::glm spdlog::spdlog opengl32.lib)
 
 target_compile_features(katengine PUBLIC cxx_std_23)
 

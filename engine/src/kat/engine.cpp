@@ -1,13 +1,24 @@
 #include "engine.hpp"
 
 
+#include <glad/wgl.h>
+#include <iostream>
+
+
 #include "window.hpp"
 
 namespace kat {
+
+    struct window_data {
+        Window* window;
+        Engine* engine;
+    };
+
     LRESULT CALLBACK winproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
         if (msg == WM_CREATE) {
             auto* cs = reinterpret_cast<CREATESTRUCTW *>(lparam);
             SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(cs->lpCreateParams));
+            std::cout << "Set winptr: " << std::hex << cs->lpCreateParams << std::dec << std::endl;
             return 0;
         }
 
@@ -32,8 +43,54 @@ namespace kat {
         wc.style = CS_HREDRAW | CS_VREDRAW;
         wc.lpszClassName = WINDOW_CLASS_NAME;
         wc.lpfnWndProc = winproc;
+        wc.cbWndExtra = sizeof(Engine*);
 
         RegisterClassExW(&wc);
+
+        HWND dummy = CreateWindowExW(0, L"STATIC", L"DummyWindow", WS_OVERLAPPED, CW_USEDEFAULT, CW_USEDEFAULT,
+                                     CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, NULL, NULL);
+
+        HDC ddc = GetDC(dummy);
+
+        PIXELFORMATDESCRIPTOR ddesc = {
+            .nSize        = sizeof(ddesc),
+            .nVersion     = 1,
+            .dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+            .iPixelType   = PFD_TYPE_RGBA,
+            .cColorBits   = 32,
+            .cDepthBits   = 24,
+            .cStencilBits = 8,
+        };
+
+        int dformat = ChoosePixelFormat(ddc, &ddesc);
+
+        DescribePixelFormat(ddc, dformat, sizeof(ddesc), &ddesc);
+        SetPixelFormat(ddc, dformat, &ddesc);
+
+        HGLRC rc = wglCreateContext(ddc);
+        wglMakeCurrent(ddc, rc);
+
+        gladLoadWGL(
+            ddc, +[](const char *p) -> GLADapiproc {
+                // std::cout << "Load: " << p << std::endl;
+                GLADapiproc proc = reinterpret_cast<GLADapiproc>(wglGetProcAddress(p));
+                if (proc == nullptr) {
+                    proc = reinterpret_cast<GLADapiproc>(GetProcAddress(GetModuleHandleA(nullptr), p));
+                    if (proc == nullptr) {
+                        std::cerr << "Failed to load: " << p << std::endl;
+                    }
+                    else {
+                        std::cerr << "Fell back to opengl32.lib for " << p << std::endl;
+                    }
+                }
+
+                return proc;
+            });
+
+        wglMakeCurrent(nullptr, nullptr);
+        wglDeleteContext(rc);
+        ReleaseDC(dummy, ddc);
+        DestroyWindow(dummy);
     }
 
     std::shared_ptr<Engine> Engine::create() {
@@ -58,6 +115,7 @@ namespace kat {
 
     void Engine::set_vsync(bool vsync) {
         m_is_vsync = vsync;
+
     }
 
     bool Engine::is_vsync() const {
@@ -94,5 +152,9 @@ namespace kat {
         while (is_any_open()) {
             update();
         }
+    }
+
+    slot<void()> Engine::get_window_redraw_request_slot() const {
+        return m_window_redraw_request_slot;
     }
 } // namespace kat

@@ -11,20 +11,19 @@ namespace kat {
 
         friend bool operator==(const color &lhs, const color &rhs) {
             return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b && lhs.a == rhs.a;
-        }
+        };
 
-        friend bool operator!=(const color &lhs, const color &rhs) { return !(lhs == rhs); }
+        friend bool operator!=(const color &lhs, const color &rhs) { return !(lhs == rhs); };
     };
 
     namespace colors {
-        constexpr color BLACK{ 0, 0, 0, 1 };
-        constexpr color WHITE{ 1, 1, 1, 1 };
-        constexpr color TRANSPARENT{ 0, 0, 0, 0 };
-        constexpr color RED{ 1, 0, 0, 1 };
-        constexpr color GREEN{ 0, 1, 0, 1 };
-        constexpr color BLUE{ 0, 0, 1, 1 };
-        constexpr color YELLOW{ 1, 1, 0, 1 };
-        constexpr color CYAN{ 0, 1, 1, 1 };
-        constexpr color MAGENTA{ 1, 0, 1, 1 };
+        inline constexpr color BLACK       = { 0, 0, 0, 1 };
+        inline constexpr color WHITE       = { 1, 1, 1, 1 };
+        inline constexpr color RED         = { 1, 0, 0, 1 };
+        inline constexpr color GREEN       = { 0, 1, 0, 1 };
+        inline constexpr color BLUE        = { 0, 0, 1, 1 };
+        inline constexpr color YELLOW      = { 1, 1, 0, 1 };
+        inline constexpr color CYAN        = { 0, 1, 1, 1 };
+        inline constexpr color MAGENTA     = { 1, 0, 1, 1 };
     } // namespace colors
 } // namespace kat

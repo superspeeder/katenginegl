@@ -2,6 +2,7 @@
 // Created by andy on 1/1/24.
 //
 
+#include <iostream>
 #include <kat/engine.hpp>
 #include <kat/window.hpp>
 
@@ -30,12 +31,13 @@ int main() {
     renderer->set_background_color(kat::colors::CYAN);
     renderer->set_does_clear(true);
 
-    while (!window->is_closed()) {
-        engine->update();
-
+    auto redraw_signal = window->get_redraw_slot().connect_signal([&] {
         engine->set_viewport_to_window(window);
 
         renderer->begin();
         renderer->end();
-    }
+    });
+
+    engine->set_primary_window(window);
+    engine->mainloop();
 }
