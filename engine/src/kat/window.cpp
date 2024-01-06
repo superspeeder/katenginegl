@@ -4,6 +4,12 @@
 #include <glad/wgl.h>
 #include <iostream>
 
+
+#include "input_manager.hpp"
+
+#include <windowsx.h>
+#include <winuser.h>
+
 std::string GetLastErrorAsString() {
     // Get the error message ID, if any.
     DWORD errorMessageID = ::GetLastError();
@@ -40,20 +46,15 @@ GLADapiproc GetAnyGLFuncAddress(const char *name) {
 }
 
 namespace kat {
-    struct window_data {
-        Window *window;
-        Engine *engine;
-    };
-
-    Window::Window(const std::shared_ptr<Engine> &engine) {
-        m_update_signal  = engine->get_window_update_slot().connect_signal([this] { this->update(); });
-        m_is_open_signal = engine->get_is_open_slot().connect_signal([this](bool &is_open) {
+    Window::Window(const std::shared_ptr<Engine> &engine) : m_engine(engine) {
+        m_update_signal  = engine->get_window_update_signal().connect([this] { this->update(); });
+        m_is_open_signal = engine->get_is_open_signal().connect([this](bool &is_open) {
             if (!this->is_closed()) {
                 is_open = true;
             }
         });
         m_request_redraw_signal =
-            engine->get_window_redraw_request_slot().connect_signal([this] { this->request_redraw(); });
+            engine->get_window_redraw_request_signal().connect([this] { this->request_redraw(); });
 
         // create window
 
@@ -170,9 +171,166 @@ namespace kat {
             m_should_close = true;
             return { 0, true };
         case WM_PAINT:
-            m_redraw_slot.call();
+            m_redraw_signal.emit();
             swap();
             break;
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP: {
+
+            WORD vk_code = LOWORD(wparam);
+
+            WORD key_flags = HIWORD(lparam);
+
+            WORD scancode        = LOBYTE(key_flags);
+            BOOL is_extended_key = (key_flags & KF_EXTENDED) == KF_EXTENDED;
+
+            if (is_extended_key) {
+                scancode = MAKEWORD(scancode, 0xE0);
+            }
+
+            BOOL was_key_down = (key_flags & KF_REPEAT) == KF_REPEAT;
+            WORD repeat_count = LOWORD(lparam);
+
+            BOOL is_key_released = (key_flags & KF_UP) == KF_UP;
+
+            switch (vk_code) {
+            case VK_SHIFT:   // converts to VK_LSHIFT or VK_RSHIFT
+            case VK_CONTROL: // converts to VK_LCONTROL or VK_RCONTROL
+            case VK_MENU:    // converts to VK_LMENU or VK_RMENU
+                vk_code = LOWORD(MapVirtualKeyW(scancode, MAPVK_VSC_TO_VK_EX));
+                break;
+            default:
+                break;
+            }
+
+            KeyMods key_mods{ .control = GetKeyState(VK_CONTROL) < 0,
+                              .shift   = GetKeyState(VK_SHIFT) < 0,
+                              .alt     = GetKeyState(VK_MENU) < 0 };
+
+
+            KeyFlags key_flags_{ .repeat = was_key_down == TRUE, .repeat_count = repeat_count };
+
+
+            if (is_key_released) {
+                m_engine->get_input_manager()->get_key_released_signal().emit(static_cast<Key>(vk_code), scancode,
+                                                                            key_mods, key_flags_);
+            }
+            else {
+                m_engine->get_input_manager()->get_key_pressed_signal().emit(static_cast<Key>(vk_code), scancode,
+                                                                           key_mods, key_flags_);
+            }
+
+        } break;
+
+        case WM_LBUTTONDOWN: {
+            KeyMods mods{
+                .control = (wparam & MK_CONTROL) != 0,
+                .shift   = (wparam & MK_SHIFT) != 0,
+                .alt     = GetKeyState(VK_MENU) < 0,
+            };
+
+            glm::ivec2 pos = { GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+
+            m_engine->get_input_manager()->get_mouse_button_pressed_signal().emit(MouseButton::Left, pos, mods);
+        } break;
+
+        case WM_RBUTTONDOWN: {
+            KeyMods mods{
+                .control = (wparam & MK_CONTROL) != 0,
+                .shift   = (wparam & MK_SHIFT) != 0,
+                .alt     = GetKeyState(VK_MENU) < 0,
+            };
+
+            glm::ivec2 pos = { GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+
+            m_engine->get_input_manager()->get_mouse_button_pressed_signal().emit(MouseButton::Right, pos, mods);
+        } break;
+
+
+        case WM_MBUTTONDOWN: {
+            KeyMods mods{
+                .control = (wparam & MK_CONTROL) != 0,
+                .shift   = (wparam & MK_SHIFT) != 0,
+                .alt     = GetKeyState(VK_MENU) < 0,
+            };
+
+            glm::ivec2 pos = { GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+
+            m_engine->get_input_manager()->get_mouse_button_pressed_signal().emit(MouseButton::Middle, pos, mods);
+        } break;
+
+        case WM_XBUTTONDOWN: {
+            WORD ks = GET_KEYSTATE_WPARAM(wparam);
+            WORD b  = GET_XBUTTON_WPARAM(wparam);
+
+            KeyMods mods{
+                .control = (ks & MK_CONTROL) != 0,
+                .shift   = (ks & MK_SHIFT) != 0,
+                .alt     = GetKeyState(VK_MENU) < 0,
+            };
+
+            glm::ivec2 pos = { GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+
+            m_engine->get_input_manager()->get_mouse_button_pressed_signal().emit(
+                b == XBUTTON1 ? MouseButton::X1 : MouseButton::X2, pos, mods);
+        } break;
+
+        case WM_LBUTTONUP: {
+            KeyMods mods{
+                .control = (wparam & MK_CONTROL) != 0,
+                .shift   = (wparam & MK_SHIFT) != 0,
+                .alt     = GetKeyState(VK_MENU) < 0,
+            };
+
+            glm::ivec2 pos = { GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+
+            m_engine->get_input_manager()->get_mouse_button_released_signal().emit(MouseButton::Left, pos, mods);
+        } break;
+
+        case WM_RBUTTONUP: {
+            KeyMods mods{
+                .control = (wparam & MK_CONTROL) != 0,
+                .shift   = (wparam & MK_SHIFT) != 0,
+                .alt     = GetKeyState(VK_MENU) < 0,
+            };
+
+            glm::ivec2 pos = { GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+
+            m_engine->get_input_manager()->get_mouse_button_released_signal().emit(MouseButton::Right, pos, mods);
+        } break;
+
+
+        case WM_MBUTTONUP: {
+            KeyMods mods{
+                .control = (wparam & MK_CONTROL) != 0,
+                .shift   = (wparam & MK_SHIFT) != 0,
+                .alt     = GetKeyState(VK_MENU) < 0,
+            };
+
+            glm::ivec2 pos = { GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+
+            m_engine->get_input_manager()->get_mouse_button_released_signal().emit(MouseButton::Middle, pos, mods);
+        } break;
+
+        case WM_XBUTTONUP: {
+            WORD ks = GET_KEYSTATE_WPARAM(wparam);
+            WORD b  = GET_XBUTTON_WPARAM(wparam);
+
+            KeyMods mods{
+                .control = (ks & MK_CONTROL) != 0,
+                .shift   = (ks & MK_SHIFT) != 0,
+                .alt     = GetKeyState(VK_MENU) < 0,
+            };
+
+            glm::ivec2 pos = { GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam) };
+
+            m_engine->get_input_manager()->get_mouse_button_released_signal().emit(
+                b == XBUTTON1 ? MouseButton::X1 : MouseButton::X2, pos, mods);
+        } break;
+
+
         default:
             break;
         }
@@ -194,5 +352,11 @@ namespace kat {
 
     void Window::make_current() const {
         wglMakeCurrent(m_dc, m_hglrc);
+    }
+
+    glm::ivec2 Window::translate_screen_coordinates(const glm::ivec2 &sc) const {
+        POINT pt{ sc.x, sc.y };
+        ScreenToClient(m_hwnd, &pt);
+        return { pt.x, pt.y };
     }
 } // namespace kat
