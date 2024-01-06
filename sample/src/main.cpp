@@ -1,7 +1,3 @@
-//
-// Created by andy on 1/1/24.
-//
-
 #include <iostream>
 #include <kat/engine.hpp>
 #include <kat/window.hpp>
@@ -11,7 +7,9 @@
 #include "kat/renderer/renderer.hpp"
 
 
-#include "input_manager.hpp"
+#include "../../engine/src/kat/input_manager.hpp"
+#include "kat/renderer/buffer.hpp"
+#include "kat/renderer/vertex_array.hpp"
 
 int main() {
     auto engine = kat::Engine::create();
@@ -58,10 +56,19 @@ int main() {
     renderer->set_background_color(kat::colors::CYAN);
     renderer->set_does_clear(true);
 
+    auto vbo = kat::Buffer::create_vec<float>({ 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f, 0.f }, kat::BufferUsage::StaticDraw);
+    auto ebo = kat::Buffer::create_vec<unsigned int>({ 0u, 1u, 2u }, kat::BufferUsage::StaticDraw);
+
+    auto vao = std::make_shared<kat::VertexArray>();
+    vao->vertex_buffer(vbo, {3});
+    vao->element_buffer(ebo);
+
     auto redraw_signal = window->get_redraw_signal().connect([&] {
         engine->set_viewport_to_window(window);
 
         renderer->begin();
+        vao->bind();
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
         renderer->end();
     });
 

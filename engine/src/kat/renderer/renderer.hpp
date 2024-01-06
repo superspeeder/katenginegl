@@ -1,5 +1,5 @@
 #pragma once
-#include "kat/color.hpp"
+#include "kat/utils/color.hpp"
 #include "kat/engine.hpp"
 
 namespace kat {

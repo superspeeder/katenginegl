@@ -8,7 +8,7 @@
 
 #include <Windows.h>
 
-#include "kat/signals/signals.hpp"
+#include "kat/utils/signals.hpp"
 
 #include <glm/glm.hpp>
 
