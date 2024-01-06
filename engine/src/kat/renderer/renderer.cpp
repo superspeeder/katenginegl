@@ -1,7 +1,16 @@
 #include "renderer.hpp"
 
+
+#include <iostream>
+
 namespace kat {
-    Renderer::Renderer(const std::shared_ptr<Engine> &engine) : m_engine(engine) {}
+    Renderer::Renderer(const std::shared_ptr<Engine> &engine) : m_engine(engine) {
+        int gl_major, gl_minor;
+        glGetIntegerv(GL_MAJOR_VERSION, &gl_major);
+        glGetIntegerv(GL_MINOR_VERSION, &gl_minor);
+
+        if (gl_major != 4 && gl_minor != 6) throw std::runtime_error("Bad OpenGL Version");
+    }
 
     std::shared_ptr<Renderer> Renderer::create(const std::shared_ptr<Engine> &engine) {
         return std::shared_ptr<Renderer>(new Renderer(engine));

@@ -29,24 +29,20 @@ std::string GetLastErrorAsString() {
     return message;
 }
 
-void *GetAnyGLFuncAddress(const char *name)
-{
+GLADapiproc GetAnyGLFuncAddress(const char *name) {
     void *p = (void *)wglGetProcAddress(name);
-    if(p == 0 ||
-      (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
-      (p == (void*)-1) )
-    {
+    if (p == 0 || (p == (void *)0x1) || (p == (void *)0x2) || (p == (void *)0x3) || (p == (void *)-1)) {
         HMODULE module = LoadLibraryA("opengl32.dll");
-        p = (void *)GetProcAddress(module, name);
+        p              = (void *)GetProcAddress(module, name);
     }
 
-    return p;
+    return reinterpret_cast<GLADapiproc>(p);
 }
 
 namespace kat {
     struct window_data {
-        Window* window;
-        Engine* engine;
+        Window *window;
+        Engine *engine;
     };
 
     Window::Window(const std::shared_ptr<Engine> &engine) {
@@ -56,52 +52,47 @@ namespace kat {
                 is_open = true;
             }
         });
-        m_request_redraw_signal = engine->get_window_redraw_request_slot().connect_signal([this] { this->request_redraw(); });
+        m_request_redraw_signal =
+            engine->get_window_redraw_request_slot().connect_signal([this] { this->request_redraw(); });
 
         // create window
 
-        constexpr DWORD    ex_style = WS_EX_OVERLAPPEDWINDOW;
-        constexpr DWORD    style    = WS_OVERLAPPEDWINDOW;
+        constexpr DWORD ex_style = WS_EX_OVERLAPPEDWINDOW;
+        constexpr DWORD style    = WS_OVERLAPPEDWINDOW;
 
         constexpr glm::ivec2 pos  = { CW_USEDEFAULT, CW_USEDEFAULT };
         constexpr glm::ivec2 size = { 800, 800 };
 
-        m_hwnd = CreateWindowExW(ex_style, WINDOW_CLASS_NAME, L"Window", style, pos.x, pos.y, size.x, size.y,
-                                 nullptr, nullptr, engine->get_hinstance(), this);
+        m_hwnd = CreateWindowExW(ex_style, WINDOW_CLASS_NAME, L"Window", style, pos.x, pos.y, size.x, size.y, nullptr,
+                                 nullptr, engine->get_hinstance(), this);
 
         m_dc = GetDC(m_hwnd);
 
         {
+            // clang-format off
             int attrib[] = {
-                WGL_DRAW_TO_WINDOW_ARB,
-                GL_TRUE,
-                WGL_SUPPORT_OPENGL_ARB,
-                GL_TRUE,
-                WGL_DOUBLE_BUFFER_ARB,
-                GL_TRUE,
-                WGL_PIXEL_TYPE_ARB,
-                WGL_TYPE_RGBA_ARB,
-                WGL_COLOR_BITS_ARB,
-                24,
-                WGL_DEPTH_BITS_ARB,
-                24,
-                WGL_STENCIL_BITS_ARB,
-                8,
-                WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB,
-                GL_TRUE,
+                WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+                WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+                WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
+                WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+                WGL_COLOR_BITS_ARB, 24,
+                WGL_DEPTH_BITS_ARB, 24,
+                WGL_STENCIL_BITS_ARB, 8,
+                WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
                 // WGL_SAMPLE_BUFFERS_ARB, 1,
                 // WGL_SAMPLES_ARB,        4, // 4x MSAA
 
                 0,
             };
+            // clang-format on
 
             int  format;
             UINT formats;
-            int  ok = wglChoosePixelFormatARB(m_dc, attrib, NULL, 1, &format, &formats);
+            wglChoosePixelFormatARB(m_dc, attrib, NULL, 1, &format, &formats);
 
             PIXELFORMATDESCRIPTOR desc = { .nSize = sizeof(desc) };
 
-            ok = DescribePixelFormat(m_dc, format, sizeof(desc), &desc);
+            DescribePixelFormat(m_dc, format, sizeof(desc), &desc);
 
             SetPixelFormat(m_dc, format, &desc);
         }
@@ -110,7 +101,7 @@ namespace kat {
                 WGL_CONTEXT_MAJOR_VERSION_ARB,
                 4,
                 WGL_CONTEXT_MINOR_VERSION_ARB,
-                5,
+                6,
                 WGL_CONTEXT_PROFILE_MASK_ARB,
                 WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 #ifndef NDEBUG
@@ -124,17 +115,9 @@ namespace kat {
 
             m_hglrc = wglCreateContextAttribsARB(m_dc, NULL, attrib);
 
-            std::cerr << "Err: " << GetLastErrorAsString() << std::endl;
+            make_current();
 
-            int ok = wglMakeCurrent(m_dc, m_hglrc);
-
-            std::cerr << "Err: " << GetLastErrorAsString() << std::endl;
-
-            gladLoadGL(+[](const char *p) -> GLADapiproc {
-                // std::cout << "Load: " << p << std::endl;
-                GLADapiproc proc = static_cast<GLADapiproc>(GetAnyGLFuncAddress(p));
-                return proc;
-            });
+            gladLoadGL(GetAnyGLFuncAddress);
         }
 
         ShowWindow(m_hwnd, SW_NORMAL);
@@ -207,5 +190,9 @@ namespace kat {
         RECT r{};
         GetClientRect(m_hwnd, &r);
         return r;
+    }
+
+    void Window::make_current() const {
+        wglMakeCurrent(m_dc, m_hglrc);
     }
 } // namespace kat

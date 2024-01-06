@@ -18,7 +18,6 @@ namespace kat {
         if (msg == WM_CREATE) {
             auto* cs = reinterpret_cast<CREATESTRUCTW *>(lparam);
             SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(cs->lpCreateParams));
-            std::cout << "Set winptr: " << std::hex << cs->lpCreateParams << std::dec << std::endl;
             return 0;
         }
 

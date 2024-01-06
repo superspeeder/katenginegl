@@ -34,6 +34,8 @@ namespace kat {
 
         [[nodiscard]] slot<void()> &get_redraw_slot() { return m_redraw_slot; }
 
+        void make_current() const;
+
       private:
         HWND  m_hwnd;
         HGLRC m_hglrc;
