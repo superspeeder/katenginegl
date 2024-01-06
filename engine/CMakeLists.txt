@@ -19,7 +19,9 @@ add_library(katengine src/kat/engine.hpp src/kat/engine.cpp
         src/kat/renderer/buffer.cpp
         src/kat/renderer/buffer.hpp
         src/kat/renderer/vertex_array.cpp
-        src/kat/renderer/vertex_array.hpp)
+        src/kat/renderer/vertex_array.hpp
+        src/kat/renderer/shader.cpp
+        src/kat/renderer/shader.hpp)
 target_include_directories(katengine PUBLIC src/ ${Stb_INCLUDE_DIR})
 target_link_libraries(katengine PUBLIC glad::glad glm::glm spdlog::spdlog opengl32.lib)
 
