@@ -107,4 +107,6 @@ namespace kat {
         signal<void(const Viewport &)> m_viewport_changed_signal;
         signal<void(bool &)>           m_is_open_signal;
     };
+
+    std::string read_file(const std::string& path);
 } // namespace kat

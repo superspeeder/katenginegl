@@ -1,6 +1,7 @@
 #include "engine.hpp"
 
 
+#include <fstream>
 #include <glad/wgl.h>
 #include <iostream>
 
@@ -32,12 +33,12 @@ namespace kat {
         m_hinstance = GetModuleHandle(nullptr);
 
         WNDCLASSEXW wc{};
-        wc.cbSize = sizeof(WNDCLASSEXW);
-        wc.hInstance = m_hinstance;
-        wc.style = CS_HREDRAW | CS_VREDRAW;
+        wc.cbSize        = sizeof(WNDCLASSEXW);
+        wc.hInstance     = m_hinstance;
+        wc.style         = CS_HREDRAW | CS_VREDRAW;
         wc.lpszClassName = WINDOW_CLASS_NAME;
-        wc.lpfnWndProc = winproc;
-        wc.cbWndExtra = sizeof(Engine*);
+        wc.lpfnWndProc   = winproc;
+        wc.cbWndExtra    = sizeof(Engine *);
 
         RegisterClassExW(&wc);
 
@@ -87,6 +88,17 @@ namespace kat {
         DestroyWindow(dummy);
 
         m_input_manager = std::make_shared<kat::InputManager>(nullptr);
+    }
+
+    std::string read_file(const std::string &path) {
+        std::ifstream f(path, std::ios::in | std::ios::ate);
+        auto end = f.tellg();
+        f.seekg(0);
+        std::string data;
+        data.resize(end);
+        f.read(data.data(), end);
+        f.close();
+        return data;
     }
 
     std::shared_ptr<Engine> Engine::create() {
